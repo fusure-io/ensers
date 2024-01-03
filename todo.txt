@@ -1,0 +1,3 @@
+Change recreate to create to check whether the collection already exists
+docker image from code
+in the docker file  automate deployment of qdrant then ensers
