@@ -30,7 +30,7 @@ class LocalFileLoader:
 
         return text
     
-    def load_docs(self,dir_path,fields=[]):
+    def load_docs(self,dir_path,unique_id=None):
          
         """
         Loads a file with unstructured data.
@@ -40,33 +40,45 @@ class LocalFileLoader:
             3. Docx
         """
         try:
-            docs=[]
+            unstructured_docs=[]
+            structured_docs=[]
+            no_of_unstructured_docs = 0
+            no_of_structured_docs = 0
+
             if os.path.exists(dir_path):
                 for filename in os.listdir(dir_path):
                     file_path = os.path.join(dir_path, filename)
 
                     if filename.endswith(".pdf"):
+                        no_of_unstructured_docs+=1
                         loader = PyPDFLoader(file_path)
-                        docs = docs+loader.load_and_split(text_splitter)
+                        unstructured_docs = unstructured_docs+loader.load_and_split(text_splitter)
                     elif filename.endswith(".docx"):
+                        no_of_unstructured_docs+=1
                         loader = Docx2txtLoader(file_path)
-                        docs = docs+loader.load_and_split(text_splitter)
+                        unstructured_docs = unstructured_docs+loader.load_and_split(text_splitter)
                     elif filename.endswith(".txt"):
+                        no_of_unstructured_docs+=1
                         loader = TextLoader(file_path)
-                        docs = docs+loader.load_and_split(text_splitter)
+                        unstructured_docs = unstructured_docs+loader.load_and_split(text_splitter)
+
                     elif filename.endswith(".json"):
+                        no_of_structured_docs+=1
                         with open(file_path, 'r', encoding='utf-8') as json_file:
                             json_data = json.load(json_file)
-                            if len(fields) ==0:
-                                fields = list(x for x in json_data[0].keys())
-                            docs=docs+[Document(page_content=str([f"{field}: {str(item[field])}, " for field in fields]).replace("['",'').replace("]'",''),
+                            
+                            structured_docs=structured_docs+[Document(page_content=json.dumps(item),
                             metadata={
+                                "id":item[unique_id] if unique_id else None,
                                 "source":filename,
-                                "item_number":idx
+                                "item_number":idx+1
                             }) for idx,item in enumerate(json_data)]
-                            print('Done')
-            return docs
+                            
+            return unstructured_docs,structured_docs,no_of_unstructured_docs,no_of_structured_docs
             
         except Exception as e:
             return "error"+str(e)
+
+# b=LocalFileLoader()
+# print(json.loads(b.load_docs(dir_path='/workspaces/ensers/test')[1][0].page_content))
 
