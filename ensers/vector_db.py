@@ -32,16 +32,20 @@ class QdrantVectorStore:
         except Exception as e:
             print(e)
         
-    def index_documents(self,documents,fields):
+    def index_documents(self,documents):
+        
         try:
             return self.qdrant.upload_records(
                                                 collection_name=self.name,
                                                 records=[
                                                     models.Record(
-                                                        id=idx, vector=self.encoder.encode(str([f"{field}: {doc[field]}, " for field in fields]).replace("['",'').replace("]'",'')).tolist(), payload=doc
+                                                        id=idx, vector=self.encoder.encode(doc.page_content).tolist(), payload={
+                                                           "page_content":doc.page_content,
+                                                           "metadata":doc.metadata
+                                                        }
                                                     )
                                                     for idx, doc in enumerate(documents)
-                                                ],
+                                                ]
                                             )
         except Exception as e:
             return "error"+str(e)
@@ -62,7 +66,7 @@ class QdrantSearch:
                 hits = self.qdrant.search(
                     collection_name=self.name,
                     query_vector=self.encoder.encode(querry).tolist(),
-                    limit=3,
+                    limit=5,
                     )
                 return [hit.payload for hit in hits]
             except Exception as e:

@@ -3,3 +3,4 @@ qdrant-client
 flask
 flask_restful
 docx2txt
+langchain

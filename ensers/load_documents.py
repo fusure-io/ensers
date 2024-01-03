@@ -1,5 +1,6 @@
 import os
 from langchain.document_loaders import PyPDFLoader,Docx2txtLoader,TextLoader
+from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import json
 
@@ -10,7 +11,7 @@ text_splitter = RecursiveCharacterTextSplitter(
     add_start_index = True,
 )
 
-class LocalLoader:
+class LocalFileLoader:
     def __init__(self):
         pass
 
@@ -29,7 +30,7 @@ class LocalLoader:
 
         return text
     
-    def load_unstructured(self,dir_path):
+    def load_docs(self,dir_path,fields=[]):
          
         """
         Loads a file with unstructured data.
@@ -53,25 +54,15 @@ class LocalLoader:
                     elif filename.endswith(".txt"):
                         loader = TextLoader(file_path)
                         docs = docs+loader.load_and_split(text_splitter)
+                    elif filename.endswith(".json"):
+                        with open(file_path, 'r', encoding='utf-8') as json_file:
+                            json_data = json.load(json_file)
+                            if len(fields) ==0:
+                                fields = list(x for x in json_data[0].keys())
+                            docs=docs+[Document(page_content=str([f"{field}: {str(item[field])}, " for field in fields]).replace("['",'').replace("]'",'')) for item in json_data]
+                            print('Done')
             return docs
             
         except Exception as e:
             return "error"+str(e)
 
-    def load_structured(self,dir_path):
-        """
-        Loads a file with structured data.
-        Supported format:Json file with an array of objects
-        """
-        try:
-            if os.path.exists(dir_path):
-                for filename in os.listdir(dir_path):
-                    file_path = os.path.join(dir_path, filename)
-                    if filename.endswith(".json"):
-                        with open(file_path, 'r', encoding='utf-8') as json_file:
-                            json_data = json.load(json_file)
-                            print(json_data)
-                            fields = list(x for x in json_data[0].keys())
-                            return json_data,fields
-        except Exception as e:
-            return "error"+str(e)
