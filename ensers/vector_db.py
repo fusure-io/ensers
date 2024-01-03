@@ -1,6 +1,6 @@
 import torch
 from sentence_transformers import SentenceTransformer
-from qdrant_client import models, QdrantClient
+from qdrant_client import models, AsyncQdrantClient
 
 encoder_name="sentence-transformers/all-MiniLM-L6-v2"
 qdrant_api="http://localhost:6333"
@@ -8,21 +8,21 @@ memory_storage=":memory:"
 
 class QdrantVectorStore:
 
-    def __init__(self,
+    def async __init__(self,
                  name,
                  q_drant_url=qdrant_api,
                  encoder_name=encoder_name,
                  use_Memory=False):
         if use_Memory == False:
-            self.qdrant = QdrantClient(q_drant_url)
+            self.qdrant = AsyncQdrantClient(q_drant_url)
         else:
-            self.qdrant = QdrantClient(memory_storage)
+            self.qdrant = AsyncQdrantClient(memory_storage)
 
         self.encoder=SentenceTransformer(encoder_name)
         self.name =name
 
         try:
-            self.qdrant.recreate_collection(
+            await self.qdrant.create_collection(
                                                 collection_name=self.name,
                                                 vectors_config=models.VectorParams(
                                                     size=self.encoder.get_sentence_embedding_dimension(),
@@ -32,10 +32,10 @@ class QdrantVectorStore:
         except Exception as e:
             print(e)
         
-    def index_documents(self,documents):
+    def async index_documents(self,documents):
         
         try:
-            self.qdrant.upload_records(
+            await self.qdrant.upsert(
                                                 collection_name=self.name,
                                                 records=[
                                                     models.Record(
@@ -58,13 +58,13 @@ class QdrantSearch:
         self.encoder = SentenceTransformer(encoder_name, device="cpu")
 
         if use_Memory == False:
-            self.qdrant = QdrantClient(q_drant_url)
+            self.qdrant = AsyncQdrantClient(q_drant_url)
         else:
-            self.qdrant = QdrantClient(memory_storage)
+            self.qdrant = AsyncQdrantClient(memory_storage)
 
-    def search(self,querry):
+    def async search(self,querry):
             try:
-                hits = self.qdrant.search(
+                hits = await self.qdrant.search(
                     collection_name=self.name,
                     query_vector=self.encoder.encode(querry).tolist(),
                     limit=5,
