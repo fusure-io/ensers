@@ -3,4 +3,4 @@ qdrant-client
 docx2txt
 langchain
 quart
-'quart-openapi[doc]'
+quart-openapi[doc]

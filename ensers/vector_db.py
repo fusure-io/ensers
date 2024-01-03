@@ -8,7 +8,7 @@ memory_storage=":memory:"
 
 class QdrantVectorStore:
 
-    def async __init__(self,
+    async def __init__(self,
                  name,
                  q_drant_url=qdrant_api,
                  encoder_name=encoder_name,
@@ -32,7 +32,7 @@ class QdrantVectorStore:
         except Exception as e:
             print(e)
         
-    def async index_documents(self,documents):
+    async def  index_documents(self,documents):
         
         try:
             await self.qdrant.upsert(
@@ -62,7 +62,7 @@ class QdrantSearch:
         else:
             self.qdrant = AsyncQdrantClient(memory_storage)
 
-    def async search(self,querry):
+    async def  search(self,querry):
             try:
                 hits = await self.qdrant.search(
                     collection_name=self.name,

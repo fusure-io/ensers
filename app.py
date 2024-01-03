@@ -1,62 +1,54 @@
-from quart import Quart, request, jsonify
-from quart_openapi import Pint, Resource, Api, Blueprint
+import asyncio
+import json
+from aiohttp import web
 
 from ensers.vector_db import QdrantVectorStore, QdrantSearch
 from ensers.load_documents import LocalFileLoader
 
-app = Pint(__name__)
-api = Api(app)
+async def home(request):
+    return web.json_response({'response': "Hi, there, thank you for using our NLP search tool; Ensers"})
 
-class Home(Resource):
-    async def get(self):
-        return {'response': "Hi, there, thank you for using our NLP search tool; Ensers"}
+async def load_documents(request):
+    try:
+        data = await request.json()
 
-class LoadDocuments(Resource):
-    async def post(self):
-        try:
-            args = await request.get_json()
+        dir_path = data.get('dir_path')
+        name_of_database = data.get('name_of_database')
+        q_drant_url = data.get('q_drant_url')
+        documents = data.get('documents', [])
+        fields = data.get('fields', [])
 
-            dir_path = args.get('dir_path')
-            name_of_database = args.get('name_of_database')
-            q_drant_url = args.get('q_drant_url')
-            documents = args.get('documents', [])
-            fields = args.get('fields', [])
+        file_loader = LocalFileLoader()
+        documents = file_loader.load_docs(dir_path=dir_path, fields=fields)
 
-            file_loader = LocalFileLoader()
-            documents = file_loader.load_docs(dir_path=dir_path, fields=fields)
+        store = QdrantVectorStore(q_drant_url=q_drant_url, name=name_of_database)
+        res = await store.index_documents(documents)
+        return web.json_response({"response": res})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
 
-            store = QdrantVectorStore(q_drant_url=q_drant_url, name=name_of_database)
-            res = await store.index_documents(documents)
-            return {"response": res}
-        except Exception as e:
-            return {'error': str(e)}
+async def search(request):
+    try:
+        data = await request.json()
 
-class Search(Resource):
-    async def post(self):
-        try:
-            args = await request.get_json()
+        name_of_database = data.get('name_of_database')
+        store = QdrantSearch(name=name_of_database)
 
-            name_of_database = args.get('name_of_database')
-            store = QdrantSearch(name=name_of_database)
+        query = data.get('query')
+        hits = await store.search(query)
+        return web.json_response({'results': hits})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
 
-            querry = args.get('querry')
-            hits = await store.search(querry)
-            return {'results': hits}
-        except Exception as e:
-            return {'error': str(e)}
+async def openapi(request):
+    return web.json_response({"msg": "Welcome to the OpenAPI documentation"})
 
-api.add_resource(Home, '/')
-api.add_resource(LoadDocuments, '/load_documents')
-api.add_resource(Search, '/search')
+app = web.Application(debug=True)
 
-# Define a Blueprint for OpenAPI documentation
-docs = Blueprint('docs', 'docs', url_prefix='/docs')
-
-@docs.route('/')
-async def openapi():
-    return jsonify({"msg": "Welcome to the OpenAPI documentation"})
-
-app.register_blueprint(docs)
+app.router.add_route('GET', '/', home)
+app.router.add_route('POST', '/load_documents', load_documents)
+app.router.add_route('POST', '/search', search)
+app.router.add_route('GET', '/docs/', openapi)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    web.run_app(app)
