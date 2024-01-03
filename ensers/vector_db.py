@@ -35,7 +35,7 @@ class QdrantVectorStore:
     def index_documents(self,documents):
         
         try:
-            return self.qdrant.upload_records(
+            self.qdrant.upload_records(
                                                 collection_name=self.name,
                                                 records=[
                                                     models.Record(
@@ -47,6 +47,7 @@ class QdrantVectorStore:
                                                     for idx, doc in enumerate(documents)
                                                 ]
                                             )
+            return "Success! Document indexed successfully."
         except Exception as e:
             return "error"+str(e)
 

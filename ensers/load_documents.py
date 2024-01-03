@@ -59,7 +59,11 @@ class LocalFileLoader:
                             json_data = json.load(json_file)
                             if len(fields) ==0:
                                 fields = list(x for x in json_data[0].keys())
-                            docs=docs+[Document(page_content=str([f"{field}: {str(item[field])}, " for field in fields]).replace("['",'').replace("]'",'')) for item in json_data]
+                            docs=docs+[Document(page_content=str([f"{field}: {str(item[field])}, " for field in fields]).replace("['",'').replace("]'",''),
+                            metadata={
+                                "source":filename,
+                                "item_number":idx
+                            }) for idx,item in enumerate(json_data)]
                             print('Done')
             return docs
             

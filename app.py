@@ -32,7 +32,7 @@ class LoadDocuments(Resource):
             documents=file_loader.load_docs(dir_path=dir_path,fields=fields)
             store = QdrantVectorStore(q_drant_url=q_drant_url,name=name_of_database)
             res=store.index_documents(documents)
-            return res
+            return {"response:"res}
         except Exception as e:
             return {'error': str(e)}
 
